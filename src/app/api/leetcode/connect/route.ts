@@ -30,7 +30,31 @@ export async function POST(req: Request) {
       rawProfile.hardSolved
     );
 
-    // Write LeetCode profile and details inside a database transaction to ensure atomicity
+    let report: any = null;
+    let plan: any = null;
+
+    // Automatically trigger initial weakness report and study plan if goal exists
+    if (user.preparationGoal && user.targetDate) {
+      // Calculate weakness scores
+      const statsForAi = normalizedStats.map(stat => ({
+        topicSlug: stat.topicSlug,
+        topicName: stat.topicName,
+        totalAttempted: stat.totalSolved + Math.round(stat.totalSolved * 0.2), // Simulated attempt count
+        totalSolved: stat.totalSolved,
+        easySolved: stat.easySolved,
+        mediumSolved: stat.mediumSolved,
+        hardSolved: stat.hardSolved
+      }));
+
+      // Call AI APIs outside the database transaction to prevent holding/losing the DB connection
+      report = await detectWeaknesses(statsForAi, user.preparationGoal);
+      
+      const targetDate = new Date(user.targetDate);
+      const daysRemaining = Math.max(1, Math.ceil((targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      plan = await generateStudyPlan(report.weakTopics, daysRemaining, user.targetDate.toISOString(), user.preparationGoal);
+    }
+
+    // Write LeetCode profile and details inside a rapid database transaction to ensure atomicity
     let leetcodeProfile: any;
 
     await prisma.$transaction(async (tx) => {
@@ -67,43 +91,33 @@ export async function POST(req: Request) {
         data: { onboardingComplete: true }
       });
 
-      // Create topic stats in DB
       // Clear old topic stats first to avoid orphaned categories
       await tx.topicStats.deleteMany({ where: { userId: user.id } });
 
-      const topicStatsData = normalizedStats.map((stat) => ({
-        userId: user.id,
-        topicSlug: stat.topicSlug,
-        topicName: stat.topicName,
-        totalSolved: stat.totalSolved,
-        totalAttempted: stat.totalSolved + Math.round(stat.totalSolved * 0.2), // Simulated attempt count
-        easySolved: stat.easySolved,
-        mediumSolved: stat.mediumSolved,
-        hardSolved: stat.hardSolved,
-        acceptanceRate: 60.0,
-        weaknessScore: 0, // Calculated during analysis run
-        lastComputedAt: new Date()
-      }));
+      const topicStatsData = normalizedStats.map((stat) => {
+        const weakTopic = report?.weakTopics?.find((wt: any) => wt.topicSlug === stat.topicSlug);
+        return {
+          userId: user.id,
+          topicSlug: stat.topicSlug,
+          topicName: stat.topicName,
+          totalSolved: stat.totalSolved,
+          totalAttempted: stat.totalSolved + Math.round(stat.totalSolved * 0.2), // Simulated attempt count
+          easySolved: stat.easySolved,
+          mediumSolved: stat.mediumSolved,
+          hardSolved: stat.hardSolved,
+          acceptanceRate: 60.0,
+          weaknessScore: weakTopic ? weakTopic.weaknessScore : 0,
+          lastComputedAt: new Date()
+        };
+      });
 
       await tx.topicStats.createMany({
         data: topicStatsData
       });
 
-      // Automatically trigger initial weakness report and study plan if goal exists
-      if (user.preparationGoal && user.targetDate) {
-        // Calculate weakness scores
-        const statsForAi = topicStatsData.map(t => ({
-          topicSlug: t.topicSlug,
-          topicName: t.topicName,
-          totalAttempted: t.totalAttempted,
-          totalSolved: t.totalSolved,
-          easySolved: t.easySolved,
-          mediumSolved: t.mediumSolved,
-          hardSolved: t.hardSolved
-        }));
+      if (report && plan && user.targetDate) {
+        const targetDate = new Date(user.targetDate);
 
-        const report = await detectWeaknesses(statsForAi, user.preparationGoal);
-        
         await tx.weaknessReport.upsert({
           where: { userId: user.id },
           create: {
@@ -120,19 +134,6 @@ export async function POST(req: Request) {
             nextAllowedAt: new Date(report.nextAllowedAt)
           }
         });
-
-        // Update topicStats weakness scores in DB from report
-        for (const wt of report.weakTopics) {
-          await tx.topicStats.update({
-            where: { userId_topicSlug: { userId: user.id, topicSlug: wt.topicSlug } },
-            data: { weaknessScore: wt.weaknessScore }
-          });
-        }
-
-        // Generate study plan
-        const targetDate = new Date(user.targetDate);
-        const daysRemaining = Math.max(1, Math.ceil((targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-        const plan = await generateStudyPlan(report.weakTopics, daysRemaining, user.targetDate.toISOString(), user.preparationGoal);
 
         const dbPlan = await tx.studyPlan.upsert({
           where: { userId: user.id },
