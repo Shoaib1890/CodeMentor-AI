@@ -1,0 +1,134 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  clerkId             String               @unique
+  email               String               @unique
+  fullName            String?
+  avatarUrl           String?
+  preparationGoal     String?              // 'internship', 'placement', 'job_switch'
+  targetDate          DateTime?
+  onboardingComplete  Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  leetcodeProfile     LeetCodeProfile?
+  topicStats          TopicStats[]
+  submissionSnapshots SubmissionSnapshot[]
+  weaknessReport      WeaknessReport?
+  studyPlan           StudyPlan?
+
+  @@map("users")
+}
+
+model LeetCodeProfile {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leetcodeUsername   String
+  totalSolved        Int       @default(0)
+  easySolved         Int       @default(0)
+  mediumSolved       Int       @default(0)
+  hardSolved         Int       @default(0)
+  acceptanceRate     Float?
+  currentStreak      Int       @default(0)
+  lastSyncedAt       DateTime?
+  isProfilePublic    Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@map("leetcode_profiles")
+}
+
+model TopicStats {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicSlug       String
+  topicName       String
+  totalAttempted  Int       @default(0)
+  totalSolved     Int       @default(0)
+  easySolved      Int       @default(0)
+  mediumSolved    Int       @default(0)
+  hardSolved      Int       @default(0)
+  acceptanceRate  Float?
+  weaknessScore   Float?
+  lastComputedAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, topicSlug])
+  @@map("topic_stats")
+}
+
+model SubmissionSnapshot {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawData      String   // Stored as JSON string to support SQLite simply
+  snapshotDate DateTime @default(now())
+
+  @@map("submission_snapshots")
+}
+
+model WeaknessReport {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportData           String   // Stored as JSON string
+  aiSummary            String
+  overallWeaknessScore Float?
+  generatedAt          DateTime @default(now())
+  nextAllowedAt        DateTime
+
+  @@map("weakness_reports")
+}
+
+model StudyPlan {
+  id            String          @id @default(uuid())
+  userId        String          @unique
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedAt   DateTime        @default(now())
+  targetDate    DateTime
+  totalWeeks    Int
+  nextAllowedAt DateTime
+  weeks         StudyPlanWeek[]
+
+  @@map("study_plans")
+}
+
+model StudyPlanWeek {
+  id             String             @id @default(uuid())
+  planId         String
+  plan           StudyPlan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  weekNumber     Int
+  focusTopicSlug String
+  focusTopicName String
+  weekDescription String?
+  problems       StudyPlanProblem[]
+
+  @@unique([planId, weekNumber])
+  @@map("study_plan_weeks")
+}
+
+model StudyPlanProblem {
+  id             String        @id @default(uuid())
+  weekId         String
+  week           StudyPlanWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  leetcodeSlug   String
+  problemTitle   String
+  difficulty     String        // 'easy', 'medium', 'hard'
+  leetcodeUrl    String
+  isCompleted    Boolean       @default(false)
+  completedAt    DateTime?
+  displayOrder   Int
+
+  @@map("study_plan_problems")
+}
