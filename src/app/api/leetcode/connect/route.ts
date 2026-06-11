@@ -165,7 +165,7 @@ export async function POST(req: Request) {
           });
 
           await tx.studyPlanProblem.createMany({
-            data: week.problems.map(p => ({
+            data: week.problems.map((p: any) => ({
               weekId: dbWeek.id,
               leetcodeSlug: p.leetcodeSlug,
               problemTitle: p.problemTitle,
