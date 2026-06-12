@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { getOrCreateAuthUser } from '@/lib/auth-helpers';
 import prisma from '@/lib/prisma';
 import { fetchLeetCodeProfile } from '@/server/integrations/leetcode/leetcode-client';
@@ -150,31 +151,43 @@ export async function POST(req: Request) {
           }
         });
 
-        // Clear old weeks & problems
+        // Clear old weeks & problems (cascade delete handles studyPlanProblem cleanup automatically)
         await tx.studyPlanWeek.deleteMany({ where: { planId: dbPlan.id } });
 
+        const weeksData: any[] = [];
+        const problemsData: any[] = [];
+
         for (const week of plan.weeks) {
-          const dbWeek = await tx.studyPlanWeek.create({
-            data: {
-              planId: dbPlan.id,
-              weekNumber: week.weekNumber,
-              focusTopicSlug: week.focusTopicSlug,
-              focusTopicName: week.focusTopicName,
-              weekDescription: week.weekDescription
-            }
+          const weekId = randomUUID();
+          weeksData.push({
+            id: weekId,
+            planId: dbPlan.id,
+            weekNumber: week.weekNumber,
+            focusTopicSlug: week.focusTopicSlug,
+            focusTopicName: week.focusTopicName,
+            weekDescription: week.weekDescription
           });
 
-          await tx.studyPlanProblem.createMany({
-            data: week.problems.map((p: any) => ({
-              weekId: dbWeek.id,
+          for (const p of week.problems) {
+            problemsData.push({
+              weekId: weekId,
               leetcodeSlug: p.leetcodeSlug,
               problemTitle: p.problemTitle,
               difficulty: p.difficulty,
               leetcodeUrl: p.leetcodeUrl,
               displayOrder: p.displayOrder
-            }))
-          });
+            });
+          }
         }
+
+        // Perform bulk inserts in 2 quick queries
+        await tx.studyPlanWeek.createMany({
+          data: weeksData
+        });
+
+        await tx.studyPlanProblem.createMany({
+          data: problemsData
+        });
       }
     });
 
