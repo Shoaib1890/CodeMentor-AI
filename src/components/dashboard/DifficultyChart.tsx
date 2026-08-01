@@ -12,57 +12,34 @@ export default function DifficultyChart({ easy, medium, hard, total }: Difficult
   const hardPct = Math.round((hard / safeTotal) * 100);
 
   const tracks = [
-    {
-      label: 'Easy Questions',
-      count: easy,
-      pct: easyPct,
-      color: 'from-emerald-500 to-teal-400 shadow-emerald-500/20',
-      textColor: 'text-emerald-400 bg-emerald-500/10'
-    },
-    {
-      label: 'Medium Questions',
-      count: medium,
-      pct: mediumPct,
-      color: 'from-amber-500 to-orange-400 shadow-amber-500/20',
-      textColor: 'text-amber-400 bg-amber-500/10'
-    },
-    {
-      label: 'Hard Questions',
-      count: hard,
-      pct: hardPct,
-      color: 'from-rose-500 to-red-400 shadow-rose-500/20',
-      textColor: 'text-rose-400 bg-rose-500/10'
-    }
+    { label: 'Easy', count: easy, pct: easyPct, color: 'bg-green-500', textClass: 'badge-success' },
+    { label: 'Medium', count: medium, pct: mediumPct, color: 'bg-yellow-500', textClass: 'badge-warning' },
+    { label: 'Hard', count: hard, pct: hardPct, color: 'bg-red-500', textClass: 'badge-danger' },
   ];
 
   return (
-    <div className="glass-card p-6 rounded-2xl flex flex-col gap-6 h-full">
-      <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
-        <div className="flex flex-col">
-          <span className="font-bold text-base text-slate-100">Difficulty Distribution</span>
-          <span className="text-xs text-slate-400">Solved counts by difficulty category</span>
+    <div className="card p-5 flex flex-col gap-5 h-full">
+      <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
+        <div>
+          <p className="font-medium text-sm">Difficulty distribution</p>
+          <p className="text-xs text-[var(--muted)] mt-0.5">Solved by difficulty</p>
         </div>
-        <span className="text-xs bg-slate-800 text-slate-300 border border-[var(--card-border)] px-2.5 py-1 rounded-full font-semibold">
-          {total} Total Solved
-        </span>
+        <span className="badge badge-neutral">{total} total</span>
       </div>
 
-      <div className="flex flex-col gap-6 justify-center flex-1">
-        {tracks.map((track, idx) => (
-          <div key={idx} className="flex flex-col gap-2">
+      <div className="flex flex-col gap-5 justify-center flex-1">
+        {tracks.map((track) => (
+          <div key={track.label} className="flex flex-col gap-1.5">
             <div className="flex justify-between items-baseline">
-              <span className="text-xs font-semibold text-slate-300">{track.label}</span>
+              <span className="text-xs font-medium text-[var(--muted)]">{track.label}</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-sm font-extrabold text-white">{track.count}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${track.textColor}`}>
-                  {track.pct}%
-                </span>
+                <span className="text-sm font-semibold">{track.count}</span>
+                <span className={`badge ${track.textClass}`}>{track.pct}%</span>
               </div>
             </div>
-            {/* Custom styled HTML bar */}
-            <div className="h-2.5 w-full bg-slate-800/80 rounded-full overflow-hidden border border-white/5">
-              <div 
-                className={`h-full bg-gradient-to-r ${track.color} rounded-full transition-all duration-1000 shadow-lg`} 
+            <div className="h-2 w-full bg-[var(--background)] rounded-full overflow-hidden border border-[var(--border)]">
+              <div
+                className={`h-full ${track.color} rounded-full transition-all duration-700`}
                 style={{ width: `${track.pct}%` }}
               />
             </div>

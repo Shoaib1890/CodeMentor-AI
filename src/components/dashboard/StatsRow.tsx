@@ -15,50 +15,50 @@ interface StatsRowProps {
 export default function StatsRow({ stats, overallWeaknessScore }: StatsRowProps) {
   const cards = [
     {
-      label: 'LeetCode Solved',
+      label: 'Problems solved',
       value: stats.totalSolved,
-      subtext: `${stats.easySolved} easy • ${stats.mediumSolved} med • ${stats.hardSolved} hard`,
+      subtext: `${stats.easySolved} easy · ${stats.mediumSolved} medium · ${stats.hardSolved} hard`,
       icon: Award,
-      color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
     },
     {
-      label: 'Solve Acceptance',
+      label: 'Acceptance rate',
       value: `${stats.acceptanceRate}%`,
       subtext: 'Average attempt accuracy',
       icon: Target,
-      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
     },
     {
-      label: 'Practice Streak',
-      value: `${stats.currentStreak} Days`,
+      label: 'Practice streak',
+      value: `${stats.currentStreak} days`,
       subtext: 'Consecutive active days',
       icon: Flame,
-      color: 'text-amber-500 bg-amber-500/10 border-amber-500/20'
     },
     {
-      label: 'Overall Weakness',
+      label: 'Overall weakness',
       value: `${overallWeaknessScore}%`,
-      subtext: overallWeaknessScore > 70 ? 'Critical gaps detected' : (overallWeaknessScore > 40 ? 'Moderate focus areas' : 'Ready for interviews'),
+      subtext: overallWeaknessScore > 70 ? 'Critical gaps detected' : (overallWeaknessScore > 40 ? 'Moderate focus areas' : 'On track'),
       icon: BrainCircuit,
-      color: overallWeaknessScore > 70 
-        ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' 
-        : (overallWeaknessScore > 40 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20')
+      severity: overallWeaknessScore > 70 ? 'danger' : (overallWeaknessScore > 40 ? 'warning' : 'success'),
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card, idx) => {
         const Icon = card.icon;
         return (
-          <div key={idx} className="glass-card p-6 rounded-2xl flex items-center justify-between">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{card.label}</span>
-              <span className="text-3xl font-extrabold text-white tracking-tight">{card.value}</span>
-              <span className="text-xs text-slate-500 leading-none">{card.subtext}</span>
+          <div key={idx} className="card p-5 flex items-start justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-[var(--muted)]">{card.label}</span>
+              <span className="text-2xl font-semibold tracking-tight">{card.value}</span>
+              <span className="text-xs text-[var(--muted-foreground)]">{card.subtext}</span>
             </div>
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${card.color} shadow-lg shadow-black/10`}>
-              <Icon className="w-5 h-5" />
+            <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${
+              card.severity === 'danger' ? 'bg-red-500/10 text-red-400' :
+              card.severity === 'warning' ? 'bg-yellow-500/10 text-yellow-400' :
+              card.severity === 'success' ? 'bg-green-500/10 text-green-400' :
+              'bg-[var(--accent-muted)] text-[var(--accent)]'
+            }`}>
+              <Icon className="w-4 h-4" />
             </div>
           </div>
         );

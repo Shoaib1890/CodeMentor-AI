@@ -11,8 +11,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user has connected LeetCode profile, if not redirect to onboarding
-    // (Bypass for onboarding page itself)
     if (pathname === '/onboarding') {
       setLoading(false);
       return;
@@ -22,7 +20,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          // If onboarding is not complete and not on onboarding page, redirect
           if (!data.data.onboardingComplete) {
             router.push('/onboarding');
           } else {
@@ -39,21 +36,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#080b11] flex flex-col items-center justify-center gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-        <span className="text-xs font-semibold text-slate-400 animate-pulse">
-          Loading your DSA profile...
-        </span>
+      <div className="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin" />
+        <span className="text-sm text-[var(--muted)]">Loading your profile...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#080b11]">
+    <div className="min-h-screen flex flex-col bg-[var(--background)]">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto px-6 py-8 md:px-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto px-6 py-8 md:px-10 max-w-6xl w-full">
           {children}
         </main>
       </div>

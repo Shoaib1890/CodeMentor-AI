@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Brain, ShieldAlert, Sparkles, CheckCircle2, ChevronRight, HelpCircle, ArrowRight } from 'lucide-react';
+import { Brain, ShieldAlert, CheckCircle2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AnalysisPage() {
@@ -10,7 +10,6 @@ export default function AnalysisPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch latest analysis
   const { data: report, isLoading } = useQuery({
     queryKey: ['analysis'],
     queryFn: async () => {
@@ -38,140 +37,131 @@ export default function AnalysisPage() {
       setAnalyzing(false);
     },
     onError: (err: any) => {
-      setError(err.message || 'Analysis run failed. Please try again.');
+      setError(err.message || 'Analysis failed. Please try again.');
       setAnalyzing(false);
     }
   });
 
-  const getSeverityBadgeClass = (severity: string) => {
+  const getSeverityBadge = (severity: string) => {
     switch (severity) {
-      case 'critical':
-        return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-      case 'moderate':
-        return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-      default:
-        return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+      case 'critical': return 'badge-danger';
+      case 'moderate': return 'badge-warning';
+      default: return 'badge-success';
     }
   };
 
   const getSeverityLabel = (severity: string) => {
     switch (severity) {
-      case 'critical':
-        return 'Critical Gap';
-      case 'moderate':
-        return 'Moderate Focus';
-      default:
-        return 'Mild Practice';
+      case 'critical': return 'Critical gap';
+      case 'moderate': return 'Moderate focus';
+      default: return 'Mild practice';
+    }
+  };
+
+  const getScoreColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'text-red-400';
+      case 'moderate': return 'text-yellow-400';
+      default: return 'text-green-400';
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 animate-pulse">
-        <div className="h-8 w-48 bg-slate-800 rounded-lg" />
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map(n => <div key={n} className="h-44 bg-slate-900/40 rounded-2xl border border-white/5" />)}
-        </div>
+        <div className="h-7 w-48 bg-[var(--card)] rounded-md" />
+        {[1, 2, 3].map(n => <div key={n} className="h-36 bg-[var(--card)] rounded-md border border-[var(--border)]" />)}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-8 pb-12">
-      {/* Header banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">AI Topic Diagnostic Matrix</h1>
-          <p className="text-xs text-slate-400">
-            A comprehensive, ranked analysis of your DSA capability profile.
-          </p>
+        <div className="page-header">
+          <h1 className="page-title">Weakness analysis</h1>
+          <p className="page-description">Ranked breakdown of your DSA topic coverage</p>
         </div>
 
         <button
           onClick={() => runAnalysisMutation.mutate()}
           disabled={analyzing}
-          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors font-extrabold text-white text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-40"
+          className="btn-primary text-sm disabled:opacity-40 self-start"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          {analyzing ? 'Re-analyzing Profile...' : 'Run Diagnostics'}
+          {analyzing ? 'Running analysis...' : 'Re-run analysis'}
         </button>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
+        <div className="p-3.5 rounded-md bg-red-500/5 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Main Weakness List */}
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {report && report.weakTopics && report.weakTopics.length > 0 ? (
-          report.weakTopics.map((topic: any) => {
-            const badgeStyle = getSeverityBadgeClass(topic.severity);
-            const badgeLabel = getSeverityLabel(topic.severity);
-
-            return (
-              <div
-                key={topic.topicSlug}
-                className="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between gap-6 items-start md:items-center border border-white/5 bg-slate-950/20"
-              >
-                <div className="flex-1 flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-extrabold text-slate-100">{topic.topicName}</span>
-                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${badgeStyle}`}>
-                      {badgeLabel}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-medium">Rank {topic.rank}</span>
-                  </div>
-
-                  <p className="text-slate-300 text-xs leading-relaxed max-w-2xl">
-                    {topic.explanation}
-                  </p>
-
-                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-white/5 flex flex-col gap-1.5">
-                    <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wide">Recommended Action Plan</span>
-                    <span className="text-xs text-slate-300 leading-relaxed font-semibold">
-                      {topic.recommendedAction}
-                    </span>
-                  </div>
+          report.weakTopics.map((topic: any) => (
+            <div key={topic.topicSlug} className="card p-5 flex flex-col md:flex-row justify-between gap-5">
+              <div className="flex-1 flex flex-col gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold">{topic.topicName}</span>
+                  <span className={`badge ${getSeverityBadge(topic.severity)}`}>
+                    {getSeverityLabel(topic.severity)}
+                  </span>
+                  <span className="text-xs text-[var(--muted-foreground)]">Rank {topic.rank}</span>
                 </div>
 
-                {/* Score Dial */}
-                <div className="flex flex-col items-center md:items-end justify-center gap-1 shrink-0 self-center md:self-auto">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Weakness Rating</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-3xl font-black ${
-                      topic.severity === 'critical' ? 'text-rose-400' : (topic.severity === 'moderate' ? 'text-amber-400' : 'text-emerald-400')
-                    }`}>
-                      {Math.round(topic.weaknessScore)}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-semibold">%</span>
-                  </div>
+                <p className="text-sm text-[var(--muted)] leading-relaxed max-w-2xl">
+                  {topic.explanation}
+                </p>
+
+                <div className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)]">
+                  <span className="text-[11px] font-medium text-[var(--accent)] block mb-1">Recommended action</span>
+                  <span className="text-sm text-[var(--foreground)]">{topic.recommendedAction}</span>
                 </div>
               </div>
-            );
-          })
+
+              <div className="flex flex-col items-center md:items-end justify-center gap-0.5 shrink-0">
+                <span className="text-[11px] text-[var(--muted-foreground)] font-medium">Weakness score</span>
+                <div className="flex items-baseline gap-0.5">
+                  <span className={`text-3xl font-semibold ${getScoreColor(topic.severity)}`}>
+                    {Math.round(topic.weaknessScore)}
+                  </span>
+                  <span className="text-xs text-[var(--muted-foreground)]">%</span>
+                </div>
+              </div>
+            </div>
+          ))
         ) : (
-          <div className="glass-card p-12 rounded-3xl text-center flex flex-col items-center gap-4 max-w-md mx-auto my-6">
-            <Brain className="w-12 h-12 text-slate-500 animate-pulse" />
-            <h2 className="text-lg font-bold text-white">No Analysis Record Found</h2>
-            <p className="text-xs text-slate-400">Trigger a diagnostics run to analyze your LeetCode database and outline your DSA weaknesses.</p>
+          <div className="card p-10 text-center flex flex-col items-center gap-4 max-w-md mx-auto">
+            <Brain className="w-10 h-10 text-[var(--muted-foreground)]" />
+            <h2 className="text-base font-semibold">No analysis yet</h2>
+            <p className="text-sm text-[var(--muted)]">Run a diagnostic to analyze your LeetCode data and identify weak topics.</p>
             <button
               onClick={() => runAnalysisMutation.mutate()}
               disabled={analyzing}
-              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white rounded-xl transition-all"
+              className="btn-primary text-sm"
             >
-              Analyze Profile Now
+              Run analysis
             </button>
           </div>
         )}
       </div>
 
+      {report && report.weakTopics && report.weakTopics.length > 0 && (
+        <div className="card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--accent-muted)] border-blue-500/20">
+          <p className="text-sm text-[var(--muted)]">Ready to start practicing? Your study plan is built around these weaknesses.</p>
+          <Link href="/study-plan" className="btn-primary text-xs py-2 shrink-0">
+            Go to study plan <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
       {analyzing && (
-        <div className="fixed inset-0 bg-[#080b11]/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
-          <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-          <span className="text-xs font-semibold text-slate-400 animate-pulse">Running AI weakness evaluation models...</span>
+        <div className="fixed inset-0 bg-[var(--background)]/80 z-50 flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-2 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin" />
+          <span className="text-sm text-[var(--muted)]">Analyzing your profile...</span>
         </div>
       )}
     </div>

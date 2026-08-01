@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Settings, ShieldAlert, CheckCircle, RefreshCw, KeyRound, AlertTriangle, Calendar } from 'lucide-react';
+import { Settings, ShieldAlert, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 
 export default function ProfilePage() {
   const queryClient = useQueryClient();
@@ -16,7 +16,6 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Fetch profile
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -25,7 +24,6 @@ export default function ProfilePage() {
       const json = await res.json();
       const data = json.data;
 
-      // Populate local form states
       setGoal(data.preparationGoal || 'placement');
       setTargetDate(data.targetDate || '');
       setUsername(data.leetcodeProfile?.username || '');
@@ -40,14 +38,10 @@ export default function ProfilePage() {
       setSuccess(false);
       setError(null);
 
-      // 1. Update preferences
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          preparationGoal: goal,
-          targetDate
-        })
+        body: JSON.stringify({ preparationGoal: goal, targetDate })
       });
 
       const data = await res.json();
@@ -55,7 +49,6 @@ export default function ProfilePage() {
         throw new Error(data.error?.message || 'Failed to update settings');
       }
 
-      // 2. If username changed, connect LeetCode profile
       if (username !== (profile?.leetcodeProfile?.username || '')) {
         const connRes = await fetch('/api/leetcode/connect', {
           method: 'POST',
@@ -95,90 +88,84 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 animate-pulse">
-        <div className="h-8 w-48 bg-slate-800 rounded-lg" />
-        <div className="h-96 bg-slate-900/40 rounded-2xl border border-white/5" />
+      <div className="flex flex-col gap-6 animate-pulse max-w-xl">
+        <div className="h-7 w-40 bg-[var(--card)] rounded-md" />
+        <div className="h-80 bg-[var(--card)] rounded-md border border-[var(--border)]" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-12 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">Profile Settings</h1>
-        <p className="text-xs text-slate-400">
-          Configure your preparation preferences and connected external profiles.
-        </p>
+    <div className="flex flex-col gap-8 pb-12 max-w-xl">
+      <div className="page-header">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-description">Manage your preparation preferences and connected profiles</p>
       </div>
 
       {success && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2.5">
+        <div className="p-3.5 rounded-md bg-green-500/5 border border-green-500/20 text-green-400 text-sm flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" />
-          <span>Profile configuration updated successfully!</span>
+          <span>Settings saved successfully.</span>
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
+        <div className="p-3.5 rounded-md bg-red-500/5 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Main Settings Card */}
-      <div className="glass-card p-6 rounded-2xl bg-slate-950/20 border border-white/5 flex flex-col gap-6">
-        <div className="flex items-center gap-2 border-b border-[var(--card-border)] pb-4">
-          <Settings className="w-4 h-4 text-indigo-400" />
-          <span className="font-bold text-sm text-slate-200">Account Preferences</span>
+      <div className="card p-5 flex flex-col gap-6">
+        <div className="flex items-center gap-2 border-b border-[var(--border)] pb-4">
+          <Settings className="w-4 h-4 text-[var(--muted)]" />
+          <span className="font-medium text-sm">Account preferences</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-xs font-medium text-[var(--muted-foreground)] block mb-1">Email</span>
+            <span className="text-[var(--foreground)]">{profile?.email}</span>
+          </div>
+          <div>
+            <span className="text-xs font-medium text-[var(--muted-foreground)] block mb-1">Member since</span>
+            <span className="text-[var(--foreground)]">
+              {new Date(profile?.accountStats.memberSince).toLocaleDateString()}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col gap-5">
-          {/* User Identifiers */}
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-slate-500 font-bold uppercase">Email Address</span>
-              <span className="text-slate-300 font-semibold">{profile?.email}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-slate-500 font-bold uppercase">Member Since</span>
-              <span className="text-slate-300 font-semibold">
-                {new Date(profile?.accountStats.memberSince).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
-
-          {/* Form Fields */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">LeetCode Connected Profile</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-[var(--muted)]">LeetCode username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-slate-950/60 border border-[var(--card-border)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+              className="input"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Preparation Goal</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-[var(--muted)]">Preparation goal</label>
             <select
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              className="w-full bg-slate-950/60 border border-[var(--card-border)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-all [color-scheme:dark]"
+              className="input [color-scheme:dark]"
             >
               <option value="internship">Internship (Easy/Medium focus)</option>
-              <option value="placement">Campus Placement (Medium DSA focus)</option>
-              <option value="job_switch">FAANG Job Switch (Medium/Hard focus)</option>
+              <option value="placement">Campus Placement (Medium focus)</option>
+              <option value="job_switch">Job Switch (Medium/Hard focus)</option>
             </select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Target interview Date</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-[var(--muted)]">Target interview date</label>
             <input
               type="date"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
-              className="w-full bg-slate-950/60 border border-[var(--card-border)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-all [color-scheme:dark]"
+              className="input [color-scheme:dark]"
             />
           </div>
         </div>
@@ -186,50 +173,48 @@ export default function ProfilePage() {
         <button
           onClick={() => updateProfileMutation.mutate()}
           disabled={saving}
-          className="mt-4 w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-white text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10 transition-colors disabled:opacity-40"
+          className="btn-primary w-full disabled:opacity-40"
         >
           {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-          Save Configuration
+          Save changes
         </button>
       </div>
 
-      {/* Danger Zone */}
-      <div className="glass-card p-6 rounded-2xl bg-rose-950/5 border border-rose-500/10 flex flex-col gap-4">
-        <div className="flex items-center gap-2 text-rose-400">
+      <div className="card p-5 border-red-500/20 flex flex-col gap-4">
+        <div className="flex items-center gap-2 text-red-400">
           <AlertTriangle className="w-4 h-4" />
-          <span className="font-bold text-sm">Danger Zone</span>
+          <span className="font-medium text-sm">Danger zone</span>
         </div>
-        <p className="text-xs text-slate-400 leading-normal">
-          Deleting your profile is permanent. All LeetCode statistics logs, weakness metrics, and study plans will be wiped completely.
+        <p className="text-sm text-[var(--muted)]">
+          Permanently delete your profile, including all LeetCode stats, weakness reports, and study plans.
         </p>
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold rounded-xl transition-colors self-start"
+          className="px-4 py-2 bg-red-500/10 hover:bg-red-500/15 text-red-400 border border-red-500/20 text-sm font-medium rounded-md transition-colors self-start"
         >
-          Delete Profile
+          Delete profile
         </button>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="glass-card max-w-sm w-full p-6 rounded-2xl border border-rose-500/20 bg-slate-950 flex flex-col gap-4">
-            <h3 className="font-extrabold text-white text-base">Are you absolutely sure?</h3>
-            <p className="text-xs text-slate-400 leading-normal">
-              This action cannot be undone. All database records and history will be cleared.
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
+          <div className="card max-w-sm w-full p-6 flex flex-col gap-4 border-red-500/20">
+            <h3 className="font-semibold">Delete your profile?</h3>
+            <p className="text-sm text-[var(--muted)]">
+              This action cannot be undone. All data will be permanently removed.
             </p>
-            <div className="flex gap-3 justify-end mt-2">
+            <div className="flex gap-3 justify-end mt-1">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="btn-secondary text-sm py-2"
               >
                 Cancel
               </button>
               <button
                 onClick={() => deleteAccountMutation.mutate()}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition-colors"
+                className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 text-sm font-medium text-white transition-colors"
               >
-                Confirm Delete
+                Delete
               </button>
             </div>
           </div>
